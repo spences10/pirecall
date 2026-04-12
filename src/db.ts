@@ -4,11 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import type { StatementSync } from 'node:sqlite';
 
-const DEFAULT_DB_PATH = join(
-	process.env.HOME!,
-	'.pi',
-	'pirecall.db',
-);
+const DEFAULT_DB_PATH = join(process.env.HOME!, '.pi', 'pirecall.db');
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS sessions (
@@ -330,9 +326,7 @@ export class Database {
 
 	get_sync_state(
 		file_path: string,
-	):
-		| { last_modified: number; last_byte_offset: number }
-		| undefined {
+	): { last_modified: number; last_byte_offset: number } | undefined {
 		return this.stmt_get_sync_state.get(file_path) as
 			| { last_modified: number; last_byte_offset: number }
 			| undefined;
@@ -364,9 +358,7 @@ export class Database {
 			.prepare('SELECT COUNT(*) as count FROM tool_results')
 			.get() as { count: number };
 		const model_changes = this.db
-			.prepare(
-				'SELECT COUNT(*) as count FROM model_changes',
-			)
+			.prepare('SELECT COUNT(*) as count FROM model_changes')
 			.get() as { count: number };
 		const tokens = this.db
 			.prepare(
@@ -439,9 +431,7 @@ export class Database {
 			JOIN sessions s ON s.id = m.session_id
 			WHERE messages_fts MATCH ?
 		`;
-		const params: (string | number)[] = [
-			escape_fts5_query(term),
-		];
+		const params: (string | number)[] = [escape_fts5_query(term)];
 
 		if (options.project) {
 			query += ` AND s.project_path LIKE ?`;
@@ -716,15 +706,12 @@ export class Database {
 		`;
 		params.push(limit);
 
-		const rows = this.db
-			.prepare(query)
-			.all(...params) as Array<{
+		const rows = this.db.prepare(query).all(...params) as Array<{
 			tool_name: string;
 			count: number;
 		}>;
 
-		let total_query =
-			'SELECT COUNT(*) as total FROM tool_calls tc';
+		let total_query = 'SELECT COUNT(*) as total FROM tool_calls tc';
 		const total_params: (string | number)[] = [];
 		if (options.project) {
 			total_query +=
@@ -732,9 +719,7 @@ export class Database {
 			total_params.push(`%${options.project}%`);
 		}
 		const total = (
-			this.db
-				.prepare(total_query)
-				.get(...total_params) as {
+			this.db.prepare(total_query).get(...total_params) as {
 				total: number;
 			}
 		).total;
@@ -777,9 +762,7 @@ export class Database {
 			.map((t) => {
 				const row_count = (
 					this.db
-						.prepare(
-							`SELECT COUNT(*) as count FROM "${t.name}"`,
-						)
+						.prepare(`SELECT COUNT(*) as count FROM "${t.name}"`)
 						.get() as { count: number }
 				).count;
 
@@ -800,12 +783,8 @@ export class Database {
 				)
 					.map((idx) => {
 						const sql_row = this.db
-							.prepare(
-								`SELECT sql FROM sqlite_master WHERE name = ?`,
-							)
-							.get(idx.name) as
-							| { sql: string }
-							| undefined;
+							.prepare(`SELECT sql FROM sqlite_master WHERE name = ?`)
+							.get(idx.name) as { sql: string } | undefined;
 						return {
 							name: idx.name,
 							sql: sql_row?.sql ?? '',
@@ -814,9 +793,7 @@ export class Database {
 					.filter((idx) => idx.sql);
 
 				const foreign_keys = this.db
-					.prepare(
-						`PRAGMA foreign_key_list("${t.name}")`,
-					)
+					.prepare(`PRAGMA foreign_key_list("${t.name}")`)
 					.all() as Array<{
 					from: string;
 					table: string;
@@ -851,8 +828,7 @@ export class Database {
 		dry_run: boolean;
 	}): CompactResult {
 		const cutoff_ts =
-			Date.now() -
-			options.older_than_days * 24 * 60 * 60 * 1000;
+			Date.now() - options.older_than_days * 24 * 60 * 60 * 1000;
 		const cutoff_date = new Date(cutoff_ts)
 			.toISOString()
 			.split('T')[0];
@@ -886,10 +862,7 @@ export class Database {
 				tool_results_compacted: {
 					read: count_tool(['read'], 200),
 					bash: count_tool(['bash'], 200),
-					grep_glob: count_tool(
-						['grep', 'glob'],
-						100,
-					),
+					grep_glob: count_tool(['grep', 'glob'], 100),
 					write: count_tool(['write'], 100),
 				},
 				bytes_before,

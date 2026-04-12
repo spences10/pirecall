@@ -1,11 +1,7 @@
 import { defineCommand } from 'citty';
 import { join } from 'node:path';
 
-const DEFAULT_DB_PATH = join(
-	process.env.HOME!,
-	'.pi',
-	'pirecall.db',
-);
+const DEFAULT_DB_PATH = join(process.env.HOME!, '.pi', 'pirecall.db');
 
 /** Convert unix ms timestamp to ISO string */
 function iso(ts: number): string {
@@ -126,14 +122,12 @@ export const query = defineCommand({
 		format: {
 			type: 'string',
 			alias: 'f',
-			description:
-				'Output format: table, json, csv (default: table)',
+			description: 'Output format: table, json, csv (default: table)',
 		},
 		limit: {
 			type: 'string',
 			alias: 'l',
-			description:
-				'Limit rows (appends LIMIT clause if not present)',
+			description: 'Limit rows (appends LIMIT clause if not present)',
 		},
 		wide: {
 			type: 'boolean',
@@ -155,18 +149,13 @@ export const query = defineCommand({
 
 		try {
 			let sql = args.sql;
-			const format = args.json
-				? 'json'
-				: (args.format ?? 'table');
+			const format = args.json ? 'json' : (args.format ?? 'table');
 
 			if (args.limit && !/\bLIMIT\b/i.test(sql)) {
 				sql = `${sql.replace(/;?\s*$/, '')} LIMIT ${parseInt(args.limit, 10)}`;
 			}
 
-			const rows = db.prepare(sql).all() as Record<
-				string,
-				unknown
-			>[];
+			const rows = db.prepare(sql).all() as Record<string, unknown>[];
 
 			if (rows.length === 0) {
 				if (args.json) {
@@ -190,9 +179,7 @@ export const query = defineCommand({
 						const s =
 							typeof v === 'object'
 								? JSON.stringify(v)
-								: String(
-										v as string | number | boolean,
-									);
+								: String(v as string | number | boolean);
 						return s.includes(',') ||
 							s.includes('"') ||
 							s.includes('\n')
@@ -207,9 +194,7 @@ export const query = defineCommand({
 					? Infinity
 					: Math.max(
 							50,
-							Math.floor(
-								term_width / Math.max(columns.length, 1),
-							),
+							Math.floor(term_width / Math.max(columns.length, 1)),
 						);
 
 				const widths = columns.map((c) =>
@@ -219,10 +204,8 @@ export const query = defineCommand({
 							c.length,
 							...rows.map(
 								(r) =>
-									String(
-										(r[c] as string | number | null) ??
-											'',
-									).length,
+									String((r[c] as string | number | null) ?? '')
+										.length,
 							),
 						),
 					),
@@ -231,18 +214,14 @@ export const query = defineCommand({
 				const header = columns
 					.map((c, i) => c.padEnd(widths[i]))
 					.join(' | ');
-				const sep = widths
-					.map((w) => '-'.repeat(w))
-					.join('-+-');
+				const sep = widths.map((w) => '-'.repeat(w)).join('-+-');
 
 				console.log(header);
 				console.log(sep);
 				for (const row of rows) {
 					const line = columns
 						.map((c, i) =>
-							String(
-								(row[c] as string | number | null) ?? '',
-							)
+							String((row[c] as string | number | null) ?? '')
 								.slice(0, max_col_width)
 								.padEnd(widths[i]),
 						)
@@ -286,9 +265,7 @@ export const tools = defineCommand({
 
 		try {
 			const results = db.get_tool_stats({
-				limit: args.top
-					? parseInt(args.top, 10)
-					: undefined,
+				limit: args.top ? parseInt(args.top, 10) : undefined,
 				project: args.project,
 			});
 
@@ -380,8 +357,7 @@ export const search = defineCommand({
 		sort: {
 			type: 'string',
 			alias: 's',
-			description:
-				'Sort order: relevance (default), time, time-asc',
+			description: 'Sort order: relevance (default), time, time-asc',
 		},
 	},
 	async run({ args }) {
@@ -418,9 +394,7 @@ export const search = defineCommand({
 				? new Date(args.after as string).getTime()
 				: undefined;
 			const results = db.search(term, {
-				limit: args.limit
-					? parseInt(args.limit, 10)
-					: undefined,
+				limit: args.limit ? parseInt(args.limit, 10) : undefined,
 				project: args.project,
 				session: args.session as string | undefined,
 				after: after_ms,
@@ -523,10 +497,7 @@ export const search = defineCommand({
 
 				for (const r of group.matches) {
 					const score = r.relevance.toFixed(2);
-					const snippet = (r.snippet ?? '').replace(
-						/\n/g,
-						' ',
-					);
+					const snippet = (r.snippet ?? '').replace(/\n/g, ' ');
 					console.log(`  [${score}] ${snippet}`);
 
 					if (context_count > 0) {
@@ -591,9 +562,7 @@ export const sessions = defineCommand({
 
 		try {
 			const results = db.get_sessions({
-				limit: args.limit
-					? parseInt(args.limit, 10)
-					: undefined,
+				limit: args.limit ? parseInt(args.limit, 10) : undefined,
 				project: args.project,
 			});
 
@@ -635,14 +604,10 @@ export const sessions = defineCommand({
 					.padEnd(32)
 					.slice(0, 32);
 				const msgs = String(s.message_count).padStart(4);
-				const tokens = s.total_tokens
-					.toLocaleString()
-					.padStart(9);
+				const tokens = s.total_tokens.toLocaleString().padStart(9);
 				const cost = `$${s.total_cost.toFixed(4)}`.padStart(8);
 				const duration =
-					s.duration_mins > 0
-						? `${s.duration_mins}m`
-						: '<1m';
+					s.duration_mins > 0 ? `${s.duration_mins}m` : '<1m';
 				console.log(
 					`${id} | ${date} | ${project} | ${msgs} | ${tokens} | ${cost} | ${duration.padStart(8)}`,
 				);
@@ -674,8 +639,7 @@ export const recall = defineCommand({
 		context: {
 			type: 'string',
 			alias: 'c',
-			description:
-				'Messages before/after each match (default: 2)',
+			description: 'Messages before/after each match (default: 2)',
 		},
 		project: {
 			type: 'string',
@@ -695,15 +659,11 @@ export const recall = defineCommand({
 				? raw_term.join(' ')
 				: raw_term;
 			if (!term) {
-				console.log(
-					JSON.stringify({ matches: [], term: '' }),
-				);
+				console.log(JSON.stringify({ matches: [], term: '' }));
 				return;
 			}
 
-			const limit = args.limit
-				? parseInt(args.limit, 10)
-				: 5;
+			const limit = args.limit ? parseInt(args.limit, 10) : 5;
 			const context_count = args.context
 				? parseInt(args.context, 10)
 				: 2;
@@ -759,8 +719,7 @@ export const recall = defineCommand({
 export const compact = defineCommand({
 	meta: {
 		name: 'compact',
-		description:
-			'Compact old tool results to save space',
+		description: 'Compact old tool results to save space',
 	},
 	args: {
 		...shared_args,
@@ -809,10 +768,8 @@ export const compact = defineCommand({
 			const fmt_bytes = (b: number) => {
 				if (b >= 1073741824)
 					return `${(b / 1073741824).toFixed(1)} GB`;
-				if (b >= 1048576)
-					return `${(b / 1048576).toFixed(1)} MB`;
-				if (b >= 1024)
-					return `${(b / 1024).toFixed(1)} KB`;
+				if (b >= 1048576) return `${(b / 1048576).toFixed(1)} MB`;
+				if (b >= 1024) return `${(b / 1024).toFixed(1)} KB`;
 				return `${b} B`;
 			};
 
@@ -853,9 +810,7 @@ export const schema = defineCommand({
 		const db = new Database(db_path);
 
 		try {
-			const result = db.get_schema(
-				args.table as string | undefined,
-			);
+			const result = db.get_schema(args.table as string | undefined);
 
 			if (result.tables.length === 0) {
 				if (args.json) {
@@ -869,9 +824,7 @@ export const schema = defineCommand({
 			}
 
 			if (args.json) {
-				console.log(
-					JSON.stringify(result.tables, null, 2),
-				);
+				console.log(JSON.stringify(result.tables, null, 2));
 				return;
 			}
 
@@ -936,9 +889,7 @@ export const schema = defineCommand({
 			if (t.foreign_keys.length > 0) {
 				console.log(`\nForeign Keys:`);
 				for (const fk of t.foreign_keys) {
-					console.log(
-						`  ${fk.from} -> ${fk.table}(${fk.to})`,
-					);
+					console.log(`  ${fk.from} -> ${fk.table}(${fk.to})`);
 				}
 			}
 

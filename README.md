@@ -24,9 +24,9 @@ follow-up questions about your session history.
 
 ## How It Works
 
-Pi stores sessions as JSONL files in `~/.pi/agent/sessions/`.
-pirecall parses these into a SQLite database so you can query across
-all sessions.
+Pi stores sessions as JSONL files in `~/.pi/agent/sessions/`. pirecall
+parses these into a SQLite database so you can query across all
+sessions.
 
 **Step 1.** Sync your sessions:
 
@@ -146,9 +146,9 @@ erDiagram
 
 ### Model/Provider Tracking
 
-Tracks mid-session model switches from `~/.pi/agent/sessions/`.
-Pi supports multiple providers (Anthropic, Mistral, etc.) and
-pirecall records every switch with provider and model ID.
+Tracks mid-session model switches from `~/.pi/agent/sessions/`. Pi
+supports multiple providers (Anthropic, Mistral, etc.) and pirecall
+records every switch with provider and model ID.
 
 **Why track model changes?**
 

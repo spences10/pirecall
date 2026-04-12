@@ -16,9 +16,7 @@ describe('Parser', () => {
 		expect(result?.session?.id).toBe(
 			'd804bba1-0440-4ad7-8e9c-4d4b242c969d',
 		);
-		expect(result?.session?.cwd).toBe(
-			'/home/scott/repos/my-pi',
-		);
+		expect(result?.session?.cwd).toBe('/home/scott/repos/my-pi');
 		expect(result?.session?.timestamp).toBe(
 			new Date('2026-04-11T21:20:35.617Z').getTime(),
 		);
@@ -36,15 +34,11 @@ describe('Parser', () => {
 
 		const result = parse_entry(line, 'session-1');
 		expect(result?.model_change).toBeDefined();
-		expect(result?.model_change?.provider).toBe(
-			'mistral',
-		);
+		expect(result?.model_change?.provider).toBe('mistral');
 		expect(result?.model_change?.model_id).toBe(
 			'mistral-large-latest',
 		);
-		expect(result?.model_change?.session_id).toBe(
-			'session-1',
-		);
+		expect(result?.model_change?.session_id).toBe('session-1');
 	});
 
 	test('parses user message', () => {
@@ -73,9 +67,7 @@ describe('Parser', () => {
 		);
 		expect(result?.message?.id).toBe('815a77ba');
 		expect(result?.message?.parent_id).toBe('e19a6d67');
-		expect(result?.message?.session_id).toBe(
-			'session-1',
-		);
+		expect(result?.message?.session_id).toBe('session-1');
 	});
 
 	test('parses assistant message with usage', () => {
@@ -159,9 +151,9 @@ describe('Parser', () => {
 		expect(msg?.tool_calls.length).toBe(1);
 		expect(msg?.tool_calls[0].id).toBe('xEsURTr3Z');
 		expect(msg?.tool_calls[0].tool_name).toBe('bash');
-		expect(
-			JSON.parse(msg!.tool_calls[0].tool_input),
-		).toEqual({ command: 'pnpx nopeek load' });
+		expect(JSON.parse(msg!.tool_calls[0].tool_input)).toEqual({
+			command: 'pnpx nopeek load',
+		});
 	});
 
 	test('parses toolResult message', () => {
@@ -189,12 +181,8 @@ describe('Parser', () => {
 		const msg = result?.message;
 		expect(msg?.type).toBe('toolResult');
 		expect(msg?.tool_results.length).toBe(1);
-		expect(msg?.tool_results[0].tool_call_id).toBe(
-			'xEsURTr3Z',
-		);
-		expect(msg?.tool_results[0].content).toBe(
-			'command output here',
-		);
+		expect(msg?.tool_results[0].tool_call_id).toBe('xEsURTr3Z');
+		expect(msg?.tool_results[0].content).toBe('command output here');
 		expect(msg?.tool_results[0].is_error).toBe(true);
 	});
 
@@ -230,12 +218,8 @@ describe('Parser', () => {
 
 		const result = parse_entry(line, 'session-1');
 		const msg = result?.message;
-		expect(msg?.thinking).toBe(
-			'Let me think about this...',
-		);
-		expect(msg?.content_text).toBe(
-			'Here is my answer.',
-		);
+		expect(msg?.thinking).toBe('Let me think about this...');
+		expect(msg?.content_text).toBe('Here is my answer.');
 	});
 
 	test('skips thinking_level_change', () => {
@@ -252,10 +236,7 @@ describe('Parser', () => {
 	});
 
 	test('returns null for invalid JSON', () => {
-		const result = parse_entry(
-			'not valid json',
-			'session-1',
-		);
+		const result = parse_entry('not valid json', 'session-1');
 		expect(result).toBeNull();
 	});
 

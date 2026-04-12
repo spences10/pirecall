@@ -113,10 +113,7 @@ export async function sync(
 				const msg = parsed.message;
 
 				// Ensure session exists (for resume where header was already processed)
-				if (
-					msg.session_id &&
-					!seen_sessions.has(msg.session_id)
-				) {
+				if (msg.session_id && !seen_sessions.has(msg.session_id)) {
 					db.upsert_session({
 						id: msg.session_id,
 						project_path,
@@ -181,20 +178,14 @@ function extract_project_path(file_path: string): string {
 	// Pi encodes paths as --home-scott-repos-foo--
 	if (project_dir.startsWith('--') && project_dir.endsWith('--')) {
 		const inner = project_dir.slice(2, -2);
-		return (
-			'/' +
-			inner.replace(/-/g, '/').replace(/\/\/+/g, '/')
-		);
+		return '/' + inner.replace(/-/g, '/').replace(/\/\/+/g, '/');
 	}
 
 	// Fallback: strip leading/trailing dashes
 	if (project_dir.startsWith('-')) {
 		return (
 			'/' +
-			project_dir
-				.slice(1)
-				.replace(/-/g, '/')
-				.replace(/\/\/+/g, '/')
+			project_dir.slice(1).replace(/-/g, '/').replace(/\/\/+/g, '/')
 		);
 	}
 

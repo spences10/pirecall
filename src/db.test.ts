@@ -102,8 +102,7 @@ describe('Database', () => {
 				id: 'msg-1',
 				session_id: 'session-1',
 				type: 'user',
-				content_text:
-					'Fix the authentication bug in the login flow',
+				content_text: 'Fix the authentication bug in the login flow',
 				timestamp: Date.now() - 3000,
 			});
 
@@ -120,8 +119,7 @@ describe('Database', () => {
 				id: 'msg-3',
 				session_id: 'session-2',
 				type: 'user',
-				content_text:
-					'Add a new feature for user profiles',
+				content_text: 'Add a new feature for user profiles',
 				timestamp: Date.now() - 1000,
 			});
 
@@ -138,8 +136,7 @@ describe('Database', () => {
 				id: 'msg-5',
 				session_id: 'session-1',
 				type: 'user',
-				content_text:
-					"don't use agents for simple tasks",
+				content_text: "don't use agents for simple tasks",
 				timestamp: Date.now() - 400,
 			});
 		});
@@ -185,8 +182,7 @@ describe('Database', () => {
 		});
 
 		test('returns empty array for no matches', () => {
-			const results =
-				db.search('nonexistentterm12345');
+			const results = db.search('nonexistentterm12345');
 			expect(results).toEqual([]);
 		});
 
@@ -196,15 +192,12 @@ describe('Database', () => {
 		});
 
 		test('supports phrase search', () => {
-			const results =
-				db.search('"authentication bug"');
+			const results = db.search('"authentication bug"');
 			expect(results.length).toBe(1);
 		});
 
 		test('handles slash in search term', () => {
-			const results = db.search(
-				'Downloads/transcripts',
-			);
+			const results = db.search('Downloads/transcripts');
 			expect(results.length).toBe(1);
 			expect(results[0].content_text).toContain(
 				'Downloads/transcripts',
@@ -229,9 +222,7 @@ describe('Database', () => {
 		test('handles apostrophe in search term', () => {
 			const results = db.search("don't");
 			expect(results.length).toBe(1);
-			expect(results[0].content_text).toContain(
-				"don't",
-			);
+			expect(results[0].content_text).toContain("don't");
 		});
 
 		test('can search thinking content', () => {
@@ -255,8 +246,7 @@ describe('Database', () => {
 				id: 'msg-content-match',
 				session_id: 'session-1',
 				type: 'assistant',
-				content_text:
-					'Sorting algorithm performance comparison',
+				content_text: 'Sorting algorithm performance comparison',
 				timestamp: Date.now() - 200,
 			});
 
@@ -279,9 +269,9 @@ describe('Database', () => {
 				sort: 'time',
 			});
 			expect(results.length).toBe(2);
-			expect(
-				results[0].timestamp,
-			).toBeGreaterThanOrEqual(results[1].timestamp);
+			expect(results[0].timestamp).toBeGreaterThanOrEqual(
+				results[1].timestamp,
+			);
 		});
 
 		test('sort by time ascending', () => {
@@ -289,18 +279,16 @@ describe('Database', () => {
 				sort: 'time-asc',
 			});
 			expect(results.length).toBe(2);
-			expect(
-				results[0].timestamp,
-			).toBeLessThanOrEqual(results[1].timestamp);
+			expect(results[0].timestamp).toBeLessThanOrEqual(
+				results[1].timestamp,
+			);
 		});
 
 		test('sort by relevance is default', () => {
-			const default_results =
-				db.search('authentication');
-			const explicit_results = db.search(
-				'authentication',
-				{ sort: 'relevance' },
-			);
+			const default_results = db.search('authentication');
+			const explicit_results = db.search('authentication', {
+				sort: 'relevance',
+			});
 			expect(default_results.map((r) => r.id)).toEqual(
 				explicit_results.map((r) => r.id),
 			);
@@ -400,22 +388,14 @@ describe('Database', () => {
 
 		test('returns messages before and after timestamp', () => {
 			const target_ts = now - 2000;
-			const ctx = db.get_messages_around(
-				'session-ctx',
-				target_ts,
-				2,
-			);
+			const ctx = db.get_messages_around('session-ctx', target_ts, 2);
 			expect(ctx.before.length).toBe(2);
 			expect(ctx.after.length).toBe(2);
 		});
 
 		test('before messages are in chronological order', () => {
 			const target_ts = now - 2000;
-			const ctx = db.get_messages_around(
-				'session-ctx',
-				target_ts,
-				2,
-			);
+			const ctx = db.get_messages_around('session-ctx', target_ts, 2);
 			expect(ctx.before[0].timestamp).toBeLessThan(
 				ctx.before[1].timestamp,
 			);
@@ -423,11 +403,7 @@ describe('Database', () => {
 
 		test('after messages are in chronological order', () => {
 			const target_ts = now - 2000;
-			const ctx = db.get_messages_around(
-				'session-ctx',
-				target_ts,
-				2,
-			);
+			const ctx = db.get_messages_around('session-ctx', target_ts, 2);
 			expect(ctx.after[0].timestamp).toBeLessThan(
 				ctx.after[1].timestamp,
 			);
@@ -435,11 +411,7 @@ describe('Database', () => {
 
 		test('respects count limit', () => {
 			const target_ts = now - 2000;
-			const ctx = db.get_messages_around(
-				'session-ctx',
-				target_ts,
-				1,
-			);
+			const ctx = db.get_messages_around('session-ctx', target_ts, 1);
 			expect(ctx.before.length).toBe(1);
 			expect(ctx.after.length).toBe(1);
 		});
@@ -469,11 +441,7 @@ describe('Database', () => {
 		});
 
 		test('handles nonexistent session', () => {
-			const ctx = db.get_messages_around(
-				'nonexistent',
-				now,
-				5,
-			);
+			const ctx = db.get_messages_around('nonexistent', now, 5);
 			expect(ctx.before).toEqual([]);
 			expect(ctx.after).toEqual([]);
 		});
@@ -537,29 +505,21 @@ describe('Database', () => {
 
 		test('includes message count', () => {
 			const results = db.get_sessions();
-			const session1 = results.find(
-				(s) => s.id === 'session-1',
-			);
-			const session2 = results.find(
-				(s) => s.id === 'session-2',
-			);
+			const session1 = results.find((s) => s.id === 'session-1');
+			const session2 = results.find((s) => s.id === 'session-2');
 			expect(session1?.message_count).toBe(2);
 			expect(session2?.message_count).toBe(1);
 		});
 
 		test('includes total tokens', () => {
 			const results = db.get_sessions();
-			const session1 = results.find(
-				(s) => s.id === 'session-1',
-			);
+			const session1 = results.find((s) => s.id === 'session-1');
 			expect(session1?.total_tokens).toBe(750);
 		});
 
 		test('includes total cost', () => {
 			const results = db.get_sessions();
-			const session1 = results.find(
-				(s) => s.id === 'session-1',
-			);
+			const session1 = results.find((s) => s.id === 'session-1');
 			expect(session1?.total_cost).toBeCloseTo(0.015);
 		});
 
@@ -577,9 +537,7 @@ describe('Database', () => {
 		});
 
 		test('returns empty array when no sessions', () => {
-			const empty_db = new Database(
-				join(__dirname, 'empty.db'),
-			);
+			const empty_db = new Database(join(__dirname, 'empty.db'));
 			const results = empty_db.get_sessions();
 			expect(results).toEqual([]);
 			empty_db.close();
@@ -620,9 +578,7 @@ describe('Database', () => {
 
 		test('returns foreign keys', () => {
 			const result = db.get_schema('messages');
-			expect(
-				result.tables[0].foreign_keys.length,
-			).toBeGreaterThan(0);
+			expect(result.tables[0].foreign_keys.length).toBeGreaterThan(0);
 			const fk = result.tables[0].foreign_keys.find(
 				(f) => f.from === 'session_id',
 			);
@@ -633,14 +589,11 @@ describe('Database', () => {
 
 		test('returns indexes', () => {
 			const result = db.get_schema('messages');
-			expect(
-				result.tables[0].indexes.length,
-			).toBeGreaterThan(0);
+			expect(result.tables[0].indexes.length).toBeGreaterThan(0);
 		});
 
 		test('returns empty tables array for unknown table', () => {
-			const result =
-				db.get_schema('nonexistent_table');
+			const result = db.get_schema('nonexistent_table');
 			expect(result.tables).toEqual([]);
 		});
 
@@ -745,9 +698,7 @@ describe('Database', () => {
 		});
 
 		test('returns empty array when no tool calls', () => {
-			const fresh_db = new Database(
-				join(__dirname, 'empty.db'),
-			);
+			const fresh_db = new Database(join(__dirname, 'empty.db'));
 			const stats = fresh_db.get_tool_stats();
 			expect(stats).toEqual([]);
 			fresh_db.close();
@@ -841,12 +792,8 @@ describe('Database', () => {
 			});
 
 			const stats = db.get_stats();
-			expect(stats.tokens.input).toBe(
-				large_tokens * 2,
-			);
-			expect(stats.tokens.output).toBe(
-				large_tokens * 2,
-			);
+			expect(stats.tokens.input).toBe(large_tokens * 2);
+			expect(stats.tokens.output).toBe(large_tokens * 2);
 		});
 
 		test('multi-statement exec works for schema creation', () => {
@@ -912,9 +859,7 @@ describe('Database', () => {
 				try {
 					db.search(term);
 				} catch (e) {
-					expect(
-						(e as Error).message,
-					).toBeDefined();
+					expect((e as Error).message).toBeDefined();
 				}
 			}
 		});
@@ -981,8 +926,7 @@ describe('Database', () => {
 	});
 
 	describe('compact', () => {
-		const OLD_TS =
-			Date.now() - 60 * 24 * 60 * 60 * 1000;
+		const OLD_TS = Date.now() - 60 * 24 * 60 * 60 * 1000;
 
 		function setup_tool_data(
 			db: Database,
@@ -1034,9 +978,7 @@ describe('Database', () => {
 				dry_run: false,
 			});
 
-			expect(result.tool_results_compacted.read).toBe(
-				1,
-			);
+			expect(result.tool_results_compacted.read).toBe(1);
 			expect(result.dry_run).toBe(false);
 
 			const row = db['db']
@@ -1048,20 +990,12 @@ describe('Database', () => {
 			};
 			expect(row.content).toContain('[compacted:');
 			expect(row.content).toContain('/src/foo.ts');
-			expect(row.content).toContain(
-				'recoverable from git',
-			);
+			expect(row.content).toContain('recoverable from git');
 		});
 
 		test('compacts bash tool results by truncating', () => {
-			const content =
-				'line1\nline2\n' + 'output '.repeat(100);
-			setup_tool_data(
-				db,
-				'bash',
-				'{"command":"ls -la"}',
-				content,
-			);
+			const content = 'line1\nline2\n' + 'output '.repeat(100);
+			setup_tool_data(db, 'bash', '{"command":"ls -la"}', content);
 
 			db.compact({
 				older_than_days: 0,
@@ -1076,24 +1010,13 @@ describe('Database', () => {
 				content: string;
 			};
 			expect(row.content).toContain('line1');
-			expect(row.content).toContain(
-				'[compacted: truncated from',
-			);
-			expect(row.content.length).toBeLessThan(
-				content.length,
-			);
+			expect(row.content).toContain('[compacted: truncated from');
+			expect(row.content.length).toBeLessThan(content.length);
 		});
 
 		test('compacts grep/glob to size marker', () => {
-			const content =
-				'/path/a.ts\n/path/b.ts\n' +
-				'x'.repeat(200);
-			setup_tool_data(
-				db,
-				'grep',
-				'{"pattern":"foo"}',
-				content,
-			);
+			const content = '/path/a.ts\n/path/b.ts\n' + 'x'.repeat(200);
+			setup_tool_data(db, 'grep', '{"pattern":"foo"}', content);
 
 			db.compact({
 				older_than_days: 0,
@@ -1107,20 +1030,13 @@ describe('Database', () => {
 				.get(`tc-grep-${OLD_TS}`) as {
 				content: string;
 			};
-			expect(row.content).toMatch(
-				/^\[compacted: \d+B\]$/,
-			);
+			expect(row.content).toMatch(/^\[compacted: \d+B\]$/);
 		});
 
 		test('compacts write results but preserves tool_input', () => {
 			const input =
 				'{"file_path":"/src/foo.ts","content":"new content"}';
-			setup_tool_data(
-				db,
-				'write',
-				input,
-				'x'.repeat(200),
-			);
+			setup_tool_data(db, 'write', input, 'x'.repeat(200));
 
 			db.compact({
 				older_than_days: 0,
@@ -1128,9 +1044,7 @@ describe('Database', () => {
 			});
 
 			const tc_row = db['db']
-				.prepare(
-					`SELECT tool_input FROM tool_calls WHERE id = ?`,
-				)
+				.prepare(`SELECT tool_input FROM tool_calls WHERE id = ?`)
 				.get(`tc-write-${OLD_TS}`) as {
 				tool_input: string;
 			};
@@ -1143,9 +1057,7 @@ describe('Database', () => {
 				.get(`tc-write-${OLD_TS}`) as {
 				content: string;
 			};
-			expect(tr_row.content).toMatch(
-				/^\[compacted: \d+B\]$/,
-			);
+			expect(tr_row.content).toMatch(/^\[compacted: \d+B\]$/);
 		});
 
 		test('skips recent data', () => {
@@ -1163,9 +1075,7 @@ describe('Database', () => {
 				dry_run: false,
 			});
 
-			expect(result.tool_results_compacted.read).toBe(
-				0,
-			);
+			expect(result.tool_results_compacted.read).toBe(0);
 
 			const row = db['db']
 				.prepare(
@@ -1194,9 +1104,7 @@ describe('Database', () => {
 				dry_run: false,
 			});
 
-			expect(result.tool_results_compacted.read).toBe(
-				0,
-			);
+			expect(result.tool_results_compacted.read).toBe(0);
 		});
 
 		test('preserves user/assistant messages', () => {
@@ -1243,9 +1151,7 @@ describe('Database', () => {
 			});
 
 			expect(result.dry_run).toBe(true);
-			expect(result.tool_results_compacted.read).toBe(
-				1,
-			);
+			expect(result.tool_results_compacted.read).toBe(1);
 
 			const row = db['db']
 				.prepare(
@@ -1258,12 +1164,7 @@ describe('Database', () => {
 		});
 
 		test('handles missing file_path gracefully', () => {
-			setup_tool_data(
-				db,
-				'read',
-				'{}',
-				'x'.repeat(500),
-			);
+			setup_tool_data(db, 'read', '{}', 'x'.repeat(500));
 
 			db.compact({
 				older_than_days: 0,
@@ -1294,9 +1195,7 @@ describe('Database', () => {
 				dry_run: false,
 			});
 
-			expect(result.tool_results_compacted.read).toBe(
-				0,
-			);
+			expect(result.tool_results_compacted.read).toBe(0);
 
 			const row = db['db']
 				.prepare(

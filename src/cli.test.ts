@@ -15,65 +15,45 @@ import {
 describe('CLI', () => {
 	test('main command exists and has subcommands', () => {
 		expect(main).toBeDefined();
-		expect((main.meta as { name: string })?.name).toBe(
-			'pirecall',
-		);
+		expect((main.meta as { name: string })?.name).toBe('pirecall');
 		expect(main.subCommands).toBeDefined();
 	});
 
 	test('sync subcommand exists', () => {
 		expect(sync).toBeDefined();
-		expect((sync.meta as { name: string })?.name).toBe(
-			'sync',
-		);
+		expect((sync.meta as { name: string })?.name).toBe('sync');
 	});
 
 	test('stats subcommand exists', () => {
 		expect(stats).toBeDefined();
-		expect((stats.meta as { name: string })?.name).toBe(
-			'stats',
-		);
+		expect((stats.meta as { name: string })?.name).toBe('stats');
 	});
 
 	test('search subcommand exists', () => {
 		expect(search).toBeDefined();
-		expect((search.meta as { name: string })?.name).toBe(
-			'search',
-		);
+		expect((search.meta as { name: string })?.name).toBe('search');
 	});
 
 	test('main command has --db option', () => {
-		const args = main.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = main.args as Record<string, { type: string }>;
 		expect(args?.db).toBeDefined();
 		expect(args?.db.type).toBe('string');
 	});
 
 	test('sync command has --verbose option', () => {
-		const args = sync.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = sync.args as Record<string, { type: string }>;
 		expect(args?.verbose).toBeDefined();
 		expect(args?.verbose.type).toBe('boolean');
 	});
 
 	test('sync command has --db option', () => {
-		const args = sync.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = sync.args as Record<string, { type: string }>;
 		expect(args?.db).toBeDefined();
 		expect(args?.db.type).toBe('string');
 	});
 
 	test('stats command has --db option', () => {
-		const args = stats.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = stats.args as Record<string, { type: string }>;
 		expect(args?.db).toBeDefined();
 		expect(args?.db.type).toBe('string');
 	});
@@ -109,10 +89,7 @@ describe('CLI', () => {
 	});
 
 	test('search command has --session option', () => {
-		const args = search.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = search.args as Record<string, { type: string }>;
 		expect(args?.session).toBeDefined();
 		expect(args?.session.type).toBe('string');
 	});
@@ -128,27 +105,21 @@ describe('CLI', () => {
 	});
 
 	test('search command has --rebuild option', () => {
-		const args = search.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = search.args as Record<string, { type: string }>;
 		expect(args?.rebuild).toBeDefined();
 		expect(args?.rebuild.type).toBe('boolean');
 	});
 
 	test('main command includes search in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.search).toBeDefined();
 	});
 
 	test('sessions subcommand exists', () => {
 		expect(sessions).toBeDefined();
-		expect(
-			(sessions.meta as { name: string })?.name,
-		).toBe('sessions');
+		expect((sessions.meta as { name: string })?.name).toBe(
+			'sessions',
+		);
 	});
 
 	test('sessions command has --limit option', () => {
@@ -172,27 +143,19 @@ describe('CLI', () => {
 	});
 
 	test('sessions command has --db option', () => {
-		const args = sessions.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = sessions.args as Record<string, { type: string }>;
 		expect(args?.db).toBeDefined();
 		expect(args?.db.type).toBe('string');
 	});
 
 	test('main command includes sessions in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.sessions).toBeDefined();
 	});
 
 	test('query subcommand exists', () => {
 		expect(query).toBeDefined();
-		expect((query.meta as { name: string })?.name).toBe(
-			'query',
-		);
+		expect((query.meta as { name: string })?.name).toBe('query');
 	});
 
 	test('query command has positional sql argument', () => {
@@ -226,10 +189,7 @@ describe('CLI', () => {
 	});
 
 	test('query command has --db option', () => {
-		const args = query.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = query.args as Record<string, { type: string }>;
 		expect(args?.db).toBeDefined();
 		expect(args?.db.type).toBe('string');
 	});
@@ -245,18 +205,13 @@ describe('CLI', () => {
 	});
 
 	test('main command includes query in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.query).toBeDefined();
 	});
 
 	test('tools subcommand exists', () => {
 		expect(tools).toBeDefined();
-		expect((tools.meta as { name: string })?.name).toBe(
-			'tools',
-		);
+		expect((tools.meta as { name: string })?.name).toBe('tools');
 	});
 
 	test('tools command has --top option', () => {
@@ -280,18 +235,13 @@ describe('CLI', () => {
 	});
 
 	test('main command includes tools in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.tools).toBeDefined();
 	});
 
 	test('schema subcommand exists', () => {
 		expect(schema).toBeDefined();
-		expect((schema.meta as { name: string })?.name).toBe(
-			'schema',
-		);
+		expect((schema.meta as { name: string })?.name).toBe('schema');
 	});
 
 	test('schema command has optional positional table argument', () => {
@@ -305,27 +255,19 @@ describe('CLI', () => {
 	});
 
 	test('schema command has --db option', () => {
-		const args = schema.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = schema.args as Record<string, { type: string }>;
 		expect(args?.db).toBeDefined();
 		expect(args?.db.type).toBe('string');
 	});
 
 	test('main command includes schema in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.schema).toBeDefined();
 	});
 
 	test('recall subcommand exists', () => {
 		expect(recall).toBeDefined();
-		expect((recall.meta as { name: string })?.name).toBe(
-			'recall',
-		);
+		expect((recall.meta as { name: string })?.name).toBe('recall');
 	});
 
 	test('recall command has positional term argument', () => {
@@ -350,34 +292,23 @@ describe('CLI', () => {
 	});
 
 	test('main command includes recall in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.recall).toBeDefined();
 	});
 
 	test('main command has global --json flag', () => {
-		const args = main.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = main.args as Record<string, { type: string }>;
 		expect(args?.json).toBeDefined();
 		expect(args?.json.type).toBe('boolean');
 	});
 
 	test('compact subcommand exists', () => {
 		expect(compact).toBeDefined();
-		expect((compact.meta as { name: string })?.name).toBe(
-			'compact',
-		);
+		expect((compact.meta as { name: string })?.name).toBe('compact');
 	});
 
 	test('compact command has --older-than and --dry-run options', () => {
-		const args = compact.args as Record<
-			string,
-			{ type: string }
-		>;
+		const args = compact.args as Record<string, { type: string }>;
 		expect(args?.['older-than']).toBeDefined();
 		expect(args?.['older-than'].type).toBe('string');
 		expect(args?.['dry-run']).toBeDefined();
@@ -385,10 +316,7 @@ describe('CLI', () => {
 	});
 
 	test('main command includes compact in subcommands', () => {
-		const sub_commands = main.subCommands as Record<
-			string,
-			unknown
-		>;
+		const sub_commands = main.subCommands as Record<string, unknown>;
 		expect(sub_commands?.compact).toBeDefined();
 	});
 
@@ -424,10 +352,7 @@ describe('CLI', () => {
 			compact,
 		];
 		for (const cmd of commands) {
-			const args = cmd.args as Record<
-				string,
-				{ type: string }
-			>;
+			const args = cmd.args as Record<string, { type: string }>;
 			expect(
 				args?.json,
 				`${(cmd.meta as { name: string }).name} missing --json`,

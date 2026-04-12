@@ -4,4 +4,5 @@
 
 ### Minor Changes
 
-- f295264: pirecall: sync pi.dev agent sessions to SQLite for search, analytics, and recall
+- f295264: pirecall: sync pi.dev agent sessions to SQLite for search,
+  analytics, and recall

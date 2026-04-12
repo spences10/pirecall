@@ -156,9 +156,7 @@ function extract_tool_calls(
 		.map((b) => ({
 			id: b.id!,
 			tool_name: b.name!,
-			tool_input: b.arguments
-				? JSON.stringify(b.arguments)
-				: '{}',
+			tool_input: b.arguments ? JSON.stringify(b.arguments) : '{}',
 		}));
 }
 
@@ -316,8 +314,9 @@ export function* parse_file(
 		// Will be set from the session entry
 	} else {
 		// Read first line of file to get session ID
-		const first_line = readFileSync(file_path, 'utf-8')
-			.split('\n')[0];
+		const first_line = readFileSync(file_path, 'utf-8').split(
+			'\n',
+		)[0];
 		try {
 			const header = JSON.parse(first_line) as PiEntry;
 			if (header.type === 'session') {
@@ -329,8 +328,7 @@ export function* parse_file(
 	}
 
 	for (const line of lines) {
-		const line_bytes =
-			new TextEncoder().encode(line).length + 1; // +1 for newline
+		const line_bytes = new TextEncoder().encode(line).length + 1; // +1 for newline
 
 		if (line.trim()) {
 			const result = parse_entry(line, session_id);
