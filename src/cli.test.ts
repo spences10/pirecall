@@ -1,0 +1,437 @@
+import { describe, expect, test } from 'vitest';
+import {
+	compact,
+	main,
+	query,
+	recall,
+	schema,
+	search,
+	sessions,
+	stats,
+	sync,
+	tools,
+} from './cli.ts';
+
+describe('CLI', () => {
+	test('main command exists and has subcommands', () => {
+		expect(main).toBeDefined();
+		expect((main.meta as { name: string })?.name).toBe(
+			'pirecall',
+		);
+		expect(main.subCommands).toBeDefined();
+	});
+
+	test('sync subcommand exists', () => {
+		expect(sync).toBeDefined();
+		expect((sync.meta as { name: string })?.name).toBe(
+			'sync',
+		);
+	});
+
+	test('stats subcommand exists', () => {
+		expect(stats).toBeDefined();
+		expect((stats.meta as { name: string })?.name).toBe(
+			'stats',
+		);
+	});
+
+	test('search subcommand exists', () => {
+		expect(search).toBeDefined();
+		expect((search.meta as { name: string })?.name).toBe(
+			'search',
+		);
+	});
+
+	test('main command has --db option', () => {
+		const args = main.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.db).toBeDefined();
+		expect(args?.db.type).toBe('string');
+	});
+
+	test('sync command has --verbose option', () => {
+		const args = sync.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.verbose).toBeDefined();
+		expect(args?.verbose.type).toBe('boolean');
+	});
+
+	test('sync command has --db option', () => {
+		const args = sync.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.db).toBeDefined();
+		expect(args?.db.type).toBe('string');
+	});
+
+	test('stats command has --db option', () => {
+		const args = stats.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.db).toBeDefined();
+		expect(args?.db.type).toBe('string');
+	});
+
+	test('search command has positional term argument', () => {
+		const args = search.args as Record<
+			string,
+			{ type: string; required?: boolean }
+		>;
+		expect(args?._).toBeDefined();
+		expect(args?._.type).toBe('positional');
+		expect(args?._.required).toBe(true);
+	});
+
+	test('search command has --limit option', () => {
+		const args = search.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.limit).toBeDefined();
+		expect(args?.limit.type).toBe('string');
+		expect(args?.limit.alias).toBe('l');
+	});
+
+	test('search command has --project option', () => {
+		const args = search.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.project).toBeDefined();
+		expect(args?.project.type).toBe('string');
+		expect(args?.project.alias).toBe('p');
+	});
+
+	test('search command has --session option', () => {
+		const args = search.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.session).toBeDefined();
+		expect(args?.session.type).toBe('string');
+	});
+
+	test('search command has --after option', () => {
+		const args = search.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.after).toBeDefined();
+		expect(args?.after.type).toBe('string');
+		expect(args?.after.alias).toBe('a');
+	});
+
+	test('search command has --rebuild option', () => {
+		const args = search.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.rebuild).toBeDefined();
+		expect(args?.rebuild.type).toBe('boolean');
+	});
+
+	test('main command includes search in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.search).toBeDefined();
+	});
+
+	test('sessions subcommand exists', () => {
+		expect(sessions).toBeDefined();
+		expect(
+			(sessions.meta as { name: string })?.name,
+		).toBe('sessions');
+	});
+
+	test('sessions command has --limit option', () => {
+		const args = sessions.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.limit).toBeDefined();
+		expect(args?.limit.type).toBe('string');
+		expect(args?.limit.alias).toBe('l');
+	});
+
+	test('sessions command has --project option', () => {
+		const args = sessions.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.project).toBeDefined();
+		expect(args?.project.type).toBe('string');
+		expect(args?.project.alias).toBe('p');
+	});
+
+	test('sessions command has --db option', () => {
+		const args = sessions.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.db).toBeDefined();
+		expect(args?.db.type).toBe('string');
+	});
+
+	test('main command includes sessions in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.sessions).toBeDefined();
+	});
+
+	test('query subcommand exists', () => {
+		expect(query).toBeDefined();
+		expect((query.meta as { name: string })?.name).toBe(
+			'query',
+		);
+	});
+
+	test('query command has positional sql argument', () => {
+		const args = query.args as Record<
+			string,
+			{ type: string; required?: boolean }
+		>;
+		expect(args?.sql).toBeDefined();
+		expect(args?.sql.type).toBe('positional');
+		expect(args?.sql.required).toBe(true);
+	});
+
+	test('query command has --format option', () => {
+		const args = query.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.format).toBeDefined();
+		expect(args?.format.type).toBe('string');
+		expect(args?.format.alias).toBe('f');
+	});
+
+	test('query command has --limit option', () => {
+		const args = query.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.limit).toBeDefined();
+		expect(args?.limit.type).toBe('string');
+		expect(args?.limit.alias).toBe('l');
+	});
+
+	test('query command has --db option', () => {
+		const args = query.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.db).toBeDefined();
+		expect(args?.db.type).toBe('string');
+	});
+
+	test('query command has --wide option', () => {
+		const args = query.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.wide).toBeDefined();
+		expect(args?.wide.type).toBe('boolean');
+		expect(args?.wide.alias).toBe('w');
+	});
+
+	test('main command includes query in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.query).toBeDefined();
+	});
+
+	test('tools subcommand exists', () => {
+		expect(tools).toBeDefined();
+		expect((tools.meta as { name: string })?.name).toBe(
+			'tools',
+		);
+	});
+
+	test('tools command has --top option', () => {
+		const args = tools.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.top).toBeDefined();
+		expect(args?.top.type).toBe('string');
+		expect(args?.top.alias).toBe('t');
+	});
+
+	test('tools command has --project option', () => {
+		const args = tools.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.project).toBeDefined();
+		expect(args?.project.type).toBe('string');
+		expect(args?.project.alias).toBe('p');
+	});
+
+	test('main command includes tools in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.tools).toBeDefined();
+	});
+
+	test('schema subcommand exists', () => {
+		expect(schema).toBeDefined();
+		expect((schema.meta as { name: string })?.name).toBe(
+			'schema',
+		);
+	});
+
+	test('schema command has optional positional table argument', () => {
+		const args = schema.args as Record<
+			string,
+			{ type: string; required?: boolean }
+		>;
+		expect(args?.table).toBeDefined();
+		expect(args?.table.type).toBe('positional');
+		expect(args?.table.required).toBe(false);
+	});
+
+	test('schema command has --db option', () => {
+		const args = schema.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.db).toBeDefined();
+		expect(args?.db.type).toBe('string');
+	});
+
+	test('main command includes schema in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.schema).toBeDefined();
+	});
+
+	test('recall subcommand exists', () => {
+		expect(recall).toBeDefined();
+		expect((recall.meta as { name: string })?.name).toBe(
+			'recall',
+		);
+	});
+
+	test('recall command has positional term argument', () => {
+		const args = recall.args as Record<
+			string,
+			{ type: string; required?: boolean }
+		>;
+		expect(args?._).toBeDefined();
+		expect(args?._.type).toBe('positional');
+		expect(args?._.required).toBe(true);
+	});
+
+	test('recall command has --limit and --context options', () => {
+		const args = recall.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.limit).toBeDefined();
+		expect(args?.limit.alias).toBe('l');
+		expect(args?.context).toBeDefined();
+		expect(args?.context.alias).toBe('c');
+	});
+
+	test('main command includes recall in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.recall).toBeDefined();
+	});
+
+	test('main command has global --json flag', () => {
+		const args = main.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.json).toBeDefined();
+		expect(args?.json.type).toBe('boolean');
+	});
+
+	test('compact subcommand exists', () => {
+		expect(compact).toBeDefined();
+		expect((compact.meta as { name: string })?.name).toBe(
+			'compact',
+		);
+	});
+
+	test('compact command has --older-than and --dry-run options', () => {
+		const args = compact.args as Record<
+			string,
+			{ type: string }
+		>;
+		expect(args?.['older-than']).toBeDefined();
+		expect(args?.['older-than'].type).toBe('string');
+		expect(args?.['dry-run']).toBeDefined();
+		expect(args?.['dry-run'].type).toBe('boolean');
+	});
+
+	test('main command includes compact in subcommands', () => {
+		const sub_commands = main.subCommands as Record<
+			string,
+			unknown
+		>;
+		expect(sub_commands?.compact).toBeDefined();
+	});
+
+	test('tools, sessions, schema do not have redundant --format arg', () => {
+		for (const cmd of [tools, sessions, schema]) {
+			const args = cmd.args as Record<string, unknown>;
+			expect(
+				args?.format,
+				`${(cmd.meta as { name: string }).name} should use --json, not --format`,
+			).toBeUndefined();
+		}
+	});
+
+	test('query command retains --format for csv/table support', () => {
+		const args = query.args as Record<
+			string,
+			{ type: string; alias?: string }
+		>;
+		expect(args?.format).toBeDefined();
+		expect(args?.format.alias).toBe('f');
+	});
+
+	test('all subcommands have --json flag', () => {
+		const commands = [
+			sync,
+			stats,
+			search,
+			sessions,
+			tools,
+			query,
+			schema,
+			recall,
+			compact,
+		];
+		for (const cmd of commands) {
+			const args = cmd.args as Record<
+				string,
+				{ type: string }
+			>;
+			expect(
+				args?.json,
+				`${(cmd.meta as { name: string }).name} missing --json`,
+			).toBeDefined();
+		}
+	});
+});
