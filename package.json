@@ -1,6 +1,6 @@
 {
 	"name": "pirecall",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Sync pi.dev agent sessions to SQLite and recall context from past sessions",
 	"keywords": [
 		"analytics",
