@@ -10,7 +10,15 @@
 		"recall",
 		"sqlite"
 	],
+	"homepage": "https://github.com/spences10/pirecall#readme",
+	"bugs": {
+		"url": "https://github.com/spences10/pirecall/issues"
+	},
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/spences10/pirecall.git"
+	},
 	"bin": {
 		"pirecall": "./dist/index.js"
 	},
