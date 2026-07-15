@@ -1,5 +1,14 @@
 # pirecall
 
+## 0.1.1
+
+### Patch Changes
+
+- 0c119e2: Move embedded SQLite schema into packaged SQL files with
+  transactional migrations and legacy database compatibility.
+- da40d25: Add SQLite-backed resumable session indexing with archive
+  preservation, source liveness, search, pagination, and typed APIs.
+
 ## 0.1.0
 
 ### Minor Changes
