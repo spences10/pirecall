@@ -1,5 +1,12 @@
 # pirecall
 
+## 0.1.2
+
+### Patch Changes
+
+- e9ba3e5: Derive CLI version metadata from package.json so published
+  command help always matches the installed release version.
+
 ## 0.1.1
 
 ### Patch Changes
