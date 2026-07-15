@@ -1,4 +1,4 @@
-import { existsSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
@@ -55,15 +55,9 @@ describe('resumable session API', () => {
 		const legacy_path = join(import.meta.dirname, 'legacy-test.db');
 		if (existsSync(legacy_path)) unlinkSync(legacy_path);
 		const legacy_db = new DatabaseSync(legacy_path);
-		legacy_db.exec(`
-			CREATE TABLE sessions (
-				id TEXT PRIMARY KEY,
-				project_path TEXT NOT NULL,
-				cwd TEXT,
-				first_timestamp INTEGER,
-				last_timestamp INTEGER
-			);
-		`);
+		legacy_db.exec(
+			readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'),
+		);
 		legacy_db.close();
 
 		const migrated_db = new Database(legacy_path);

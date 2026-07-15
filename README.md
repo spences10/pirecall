@@ -105,6 +105,14 @@ All commands support `--json` for programmatic output and
 `-d, --db <path>` to use a custom database path (default:
 `~/.pi/pirecall.db`).
 
+## Schema migrations
+
+`src/schema.sql` creates the base database schema. `src/schema.ts`
+loads that file, checks `PRAGMA user_version`, and transactionally
+applies newer SQL files from `src/migrations/`. Builds copy the schema
+and migrations into `dist`. Older unversioned pirecall databases are
+detected and adopted without deleting archive data.
+
 ## Database Schema
 
 ```mermaid

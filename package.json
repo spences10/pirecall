@@ -37,7 +37,7 @@
 		}
 	},
 	"scripts": {
-		"build": "vp pack",
+		"build": "vp pack && cp src/schema.sql dist/schema.sql && mkdir -p dist/migrations && cp src/migrations/*.sql dist/migrations/",
 		"dev": "vp pack --watch",
 		"start": "node ./dist/index.js",
 		"check": "vp check",

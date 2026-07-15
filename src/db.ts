@@ -3,116 +3,9 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import type { StatementSync } from 'node:sqlite';
+import { apply_schema } from './schema.ts';
 
 const DEFAULT_DB_PATH = join(process.env.HOME!, '.pi', 'pirecall.db');
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS sessions (
-  id TEXT PRIMARY KEY,
-  project_path TEXT NOT NULL,
-  cwd TEXT,
-  first_timestamp INTEGER,
-  last_timestamp INTEGER,
-  source_path TEXT,
-  source_exists INTEGER NOT NULL DEFAULT 0,
-  source_mtime_ms REAL,
-  source_size_bytes INTEGER,
-  last_seen_at INTEGER,
-  name TEXT,
-  parent_session_path TEXT,
-  first_message TEXT
-);
-
-CREATE TABLE IF NOT EXISTS messages (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  parent_id TEXT,
-  type TEXT NOT NULL,
-  provider TEXT,
-  model TEXT,
-  content_text TEXT,
-  content_json TEXT,
-  thinking TEXT,
-  timestamp INTEGER NOT NULL,
-  input_tokens INTEGER DEFAULT 0,
-  output_tokens INTEGER DEFAULT 0,
-  cache_read_tokens INTEGER DEFAULT 0,
-  cache_write_tokens INTEGER DEFAULT 0,
-  cost_total REAL DEFAULT 0,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-
-CREATE TABLE IF NOT EXISTS sync_state (
-  file_path TEXT PRIMARY KEY,
-  last_modified INTEGER NOT NULL,
-  last_byte_offset INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS tool_calls (
-  id TEXT PRIMARY KEY,
-  message_id TEXT NOT NULL,
-  session_id TEXT NOT NULL,
-  tool_name TEXT NOT NULL,
-  tool_input TEXT,
-  timestamp INTEGER NOT NULL,
-  FOREIGN KEY (message_id) REFERENCES messages(id),
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-
-CREATE TABLE IF NOT EXISTS tool_results (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tool_call_id TEXT NOT NULL,
-  message_id TEXT NOT NULL,
-  session_id TEXT NOT NULL,
-  content TEXT,
-  is_error INTEGER DEFAULT 0,
-  timestamp INTEGER NOT NULL,
-  FOREIGN KEY (tool_call_id) REFERENCES tool_calls(id),
-  FOREIGN KEY (message_id) REFERENCES messages(id),
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-
-CREATE TABLE IF NOT EXISTS model_changes (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  parent_id TEXT,
-  provider TEXT,
-  model_id TEXT,
-  timestamp INTEGER NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
-CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
-CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_path);
-CREATE INDEX IF NOT EXISTS idx_tool_calls_session ON tool_calls(session_id);
-CREATE INDEX IF NOT EXISTS idx_tool_calls_name ON tool_calls(tool_name);
-CREATE INDEX IF NOT EXISTS idx_tool_results_session ON tool_results(session_id);
-CREATE INDEX IF NOT EXISTS idx_tool_results_call ON tool_results(tool_call_id);
-CREATE INDEX IF NOT EXISTS idx_model_changes_session ON model_changes(session_id);
-
--- FTS5 full-text search index for messages (content_text + thinking)
-CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
-  content_text,
-  thinking,
-  content='messages',
-  content_rowid='rowid'
-);
-
--- Triggers to keep FTS index in sync with messages table
-CREATE TRIGGER IF NOT EXISTS messages_fts_insert AFTER INSERT ON messages BEGIN
-  INSERT INTO messages_fts(rowid, content_text, thinking) VALUES (new.rowid, new.content_text, new.thinking);
-END;
-
-CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages BEGIN
-  INSERT INTO messages_fts(messages_fts, rowid, content_text, thinking) VALUES('delete', old.rowid, old.content_text, old.thinking);
-END;
-
-CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE ON messages BEGIN
-  INSERT INTO messages_fts(messages_fts, rowid, content_text, thinking) VALUES('delete', old.rowid, old.content_text, old.thinking);
-  INSERT INTO messages_fts(rowid, content_text, thinking) VALUES (new.rowid, new.content_text, new.thinking);
-END;
-`;
 
 /**
  * Escape a search term for FTS5 MATCH queries.
@@ -167,8 +60,7 @@ export class Database {
 			enableForeignKeyConstraints: true,
 		});
 		this.db.exec('PRAGMA busy_timeout = 5000');
-		this.db.exec(SCHEMA);
-		this.migrate_sessions_schema();
+		apply_schema(this.db);
 
 		this.stmt_upsert_session = this.db.prepare(`
 			INSERT INTO sessions (id, project_path, cwd, first_timestamp, last_timestamp)
@@ -217,38 +109,6 @@ export class Database {
 				last_modified = excluded.last_modified,
 				last_byte_offset = excluded.last_byte_offset
 		`);
-	}
-
-	private migrate_sessions_schema() {
-		const columns = new Set(
-			(
-				this.db
-					.prepare('PRAGMA table_info(sessions)')
-					.all() as Array<{
-					name: string;
-				}>
-			).map((column) => column.name),
-		);
-		const additions: Record<string, string> = {
-			source_path: 'TEXT',
-			source_exists: 'INTEGER NOT NULL DEFAULT 0',
-			source_mtime_ms: 'REAL',
-			source_size_bytes: 'INTEGER',
-			last_seen_at: 'INTEGER',
-			name: 'TEXT',
-			parent_session_path: 'TEXT',
-			first_message: 'TEXT',
-		};
-		for (const [name, definition] of Object.entries(additions)) {
-			if (!columns.has(name)) {
-				this.db.exec(
-					`ALTER TABLE sessions ADD COLUMN ${name} ${definition}`,
-				);
-			}
-		}
-		this.db.exec(
-			'CREATE INDEX IF NOT EXISTS idx_sessions_resumable ON sessions(source_exists, last_timestamp DESC)',
-		);
 	}
 
 	begin() {
