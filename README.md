@@ -22,6 +22,39 @@ Use pirecall inline in pi sessions. Tell the agent:
 The agent runs the command, gets structured output, and can answer
 follow-up questions about your session history.
 
+## Resumable session index
+
+Pirecall remains an archive: deleting a Pi JSONL session does not
+delete its history from the database. Each sync additionally records
+source-file metadata and marks missing sources as unavailable. Resume
+integrations query only live sources:
+
+```bash
+pirecall resumable --scope all --limit 100 --json
+pirecall resumable --scope project --cwd "$PWD" --query auth --json
+```
+
+The command returns a versioned object containing `schema_version`,
+`capabilities`, and compact `sessions`. Node integrations can use the
+same contract without relying on internal SQLite tables:
+
+```ts
+import { list_resumable_sessions } from 'pirecall/resumable';
+
+const result = await list_resumable_sessions({
+	scope: 'project',
+	cwd: process.cwd(),
+	query: 'auth',
+	limit: 50,
+});
+```
+
+Results contain the absolute JSONL `path`; integrations should verify
+it still exists immediately before asking Pi to switch sessions.
+Existing databases are migrated additively when opened. Run
+`pirecall sync --json` once after upgrading to populate source
+metadata.
+
 ## How It Works
 
 Pi stores sessions as JSONL files in `~/.pi/agent/sessions/`. pirecall
@@ -59,6 +92,7 @@ npx pirecall query "SELECT project_path, SUM(cost_total) FROM sessions s JOIN me
 npx pirecall sync                  # Import sessions (incremental)
 npx pirecall stats                 # Session/message/token/cost counts
 npx pirecall sessions              # List recent sessions
+npx pirecall resumable --json      # List live sessions for resume UIs
 npx pirecall search <term>         # Full-text search across messages
 npx pirecall tools                 # Most-used tools
 npx pirecall recall <term>         # LLM-optimised context retrieval

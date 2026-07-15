@@ -2,10 +2,10 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
 	pack: {
-		entry: ['src/index.ts'],
+		entry: ['src/index.ts', 'src/resumable.ts'],
 		format: ['esm'],
 		sourcemap: true,
-		dts: false,
+		dts: true,
 		outExtensions: () => ({ js: '.js' }),
 	},
 	test: {

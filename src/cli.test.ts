@@ -4,6 +4,7 @@ import {
 	main,
 	query,
 	recall,
+	resumable,
 	schema,
 	search,
 	sessions,
@@ -22,6 +23,24 @@ describe('CLI', () => {
 	test('sync subcommand exists', () => {
 		expect(sync).toBeDefined();
 		expect((sync.meta as { name: string })?.name).toBe('sync');
+	});
+
+	test('resumable subcommand exposes the resume query options', () => {
+		expect(resumable).toBeDefined();
+		expect((resumable.meta as { name: string })?.name).toBe(
+			'resumable',
+		);
+		const args = resumable.args as Record<string, { type: string }>;
+		for (const name of [
+			'db',
+			'cwd',
+			'scope',
+			'query',
+			'limit',
+			'offset',
+		]) {
+			expect(args[name]).toBeDefined();
+		}
 	});
 
 	test('stats subcommand exists', () => {

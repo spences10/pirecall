@@ -716,6 +716,55 @@ export const recall = defineCommand({
 	},
 });
 
+export const resumable = defineCommand({
+	meta: {
+		name: 'resumable',
+		description: 'List live sessions available for fast resume',
+	},
+	args: {
+		...shared_args,
+		cwd: {
+			type: 'string',
+			description: 'Canonical project working directory',
+		},
+		scope: {
+			type: 'string',
+			description: 'Session scope: project or all (default: all)',
+		},
+		query: {
+			type: 'string',
+			alias: 'q',
+			description: 'Search names, paths, and user/assistant messages',
+		},
+		limit: {
+			type: 'string',
+			alias: 'l',
+			description: 'Maximum results (default: 100)',
+		},
+		offset: {
+			type: 'string',
+			description: 'Pagination offset (default: 0)',
+		},
+	},
+	async run({ args }) {
+		const { list_resumable_sessions } =
+			await import('./resumable.ts');
+		const scope = args.scope ?? (args.cwd ? 'project' : 'all');
+		if (scope !== 'project' && scope !== 'all') {
+			throw new Error('--scope must be "project" or "all"');
+		}
+		const result = await list_resumable_sessions({
+			db_path: args.db,
+			cwd: args.cwd,
+			scope,
+			query: args.query,
+			limit: args.limit ? parseInt(args.limit, 10) : undefined,
+			offset: args.offset ? parseInt(args.offset, 10) : undefined,
+		});
+		console.log(JSON.stringify(result, null, 2));
+	},
+});
+
 export const compact = defineCommand({
 	meta: {
 		name: 'compact',
@@ -908,7 +957,7 @@ export const schema = defineCommand({
 export const main = defineCommand({
 	meta: {
 		name: 'pirecall',
-		version: '0.0.1',
+		version: '0.1.0',
 		description:
 			'Sync pi.dev agent sessions to SQLite and recall context from past sessions',
 	},
@@ -931,6 +980,7 @@ export const main = defineCommand({
 		query,
 		tools,
 		recall,
+		resumable,
 		schema,
 		compact,
 	},

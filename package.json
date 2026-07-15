@@ -26,6 +26,16 @@
 		"dist"
 	],
 	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/resumable.d.ts",
+			"import": "./dist/resumable.js"
+		},
+		"./resumable": {
+			"types": "./dist/resumable.d.ts",
+			"import": "./dist/resumable.js"
+		}
+	},
 	"scripts": {
 		"build": "vp pack",
 		"dev": "vp pack --watch",
