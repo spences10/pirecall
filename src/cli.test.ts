@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import {
 	compact,
@@ -14,9 +15,18 @@ import {
 } from './cli.ts';
 
 describe('CLI', () => {
-	test('main command exists and has subcommands', () => {
+	test('main command uses the package version', () => {
+		const package_json = JSON.parse(
+			readFileSync(
+				new URL('../package.json', import.meta.url),
+				'utf8',
+			),
+		) as { version: string };
 		expect(main).toBeDefined();
 		expect((main.meta as { name: string })?.name).toBe('pirecall');
+		expect((main.meta as { version: string })?.version).toBe(
+			package_json.version,
+		);
 		expect(main.subCommands).toBeDefined();
 	});
 
