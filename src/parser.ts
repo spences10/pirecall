@@ -10,6 +10,11 @@ interface SessionEntry {
 	parentSession?: string;
 }
 
+interface SessionInfoEntry {
+	type: 'session_info';
+	name?: string;
+}
+
 interface ModelChangeEntry {
 	type: 'model_change';
 	id: string;
@@ -67,6 +72,7 @@ interface MessageEntry {
 
 type PiEntry =
 	| SessionEntry
+	| SessionInfoEntry
 	| ModelChangeEntry
 	| MessageEntry
 	| { type: string; [key: string]: unknown };
@@ -75,6 +81,11 @@ export interface ParsedSession {
 	id: string;
 	cwd: string;
 	timestamp: number;
+	parent_session_path?: string;
+}
+
+export interface ParsedSessionInfo {
+	name?: string;
 }
 
 export interface ParsedMessage {
@@ -162,6 +173,7 @@ function extract_tool_calls(
 
 export interface ParseResult {
 	session?: ParsedSession;
+	session_info?: ParsedSessionInfo;
 	message?: ParsedMessage;
 	model_change?: ParsedModelChange;
 }
@@ -182,6 +194,16 @@ export function parse_entry(
 					id: entry.id,
 					cwd: entry.cwd,
 					timestamp,
+					parent_session_path: entry.parentSession,
+				},
+			};
+		}
+
+		if (data.type === 'session_info') {
+			const entry = data as SessionInfoEntry;
+			return {
+				session_info: {
+					name: entry.name?.trim() || undefined,
 				},
 			};
 		}

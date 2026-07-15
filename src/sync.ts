@@ -1,4 +1,10 @@
-import { existsSync, statSync } from 'node:fs';
+import {
+	closeSync,
+	existsSync,
+	openSync,
+	readSync,
+	statSync,
+} from 'node:fs';
 import { join, relative } from 'node:path';
 import { glob } from 'tinyglobby';
 import { Database } from './db.ts';
@@ -49,6 +55,7 @@ export async function sync(
 	console.log(`Found ${files.length} session files`);
 
 	const seen_sessions = new Set<string>();
+	const seen_at = Date.now();
 	let file_idx = 0;
 
 	db.disable_foreign_keys();
@@ -61,11 +68,23 @@ export async function sync(
 				`\r  Progress: ${file_idx}/${files.length}`,
 			);
 		}
-		const last_modified = statSync(file_path).mtimeMs;
+		const file_stats = statSync(file_path);
+		const last_modified = file_stats.mtimeMs;
 
 		const sync_state = db.get_sync_state(file_path);
 
 		if (sync_state && sync_state.last_modified >= last_modified) {
+			const header = read_session_header(file_path);
+			if (header) {
+				db.update_session_source({
+					id: header.id,
+					path: file_path,
+					mtime_ms: last_modified,
+					size_bytes: file_stats.size,
+					last_seen_at: seen_at,
+					parent_session_path: header.parentSession,
+				});
+			}
 			continue;
 		}
 
@@ -78,6 +97,12 @@ export async function sync(
 
 		let last_byte_offset = start_offset;
 		let file_messages_added = 0;
+		const header = read_session_header(file_path);
+		let session_id = header?.id ?? '';
+		let session_name: string | undefined;
+		let session_name_seen = false;
+		let parent_session_path = header?.parentSession;
+		let first_message: string | undefined;
 
 		for (const { result: parsed, byte_offset } of parse_file(
 			file_path,
@@ -100,6 +125,13 @@ export async function sync(
 					seen_sessions.add(session.id);
 					result.sessions_added++;
 				}
+				session_id = session.id;
+				parent_session_path = session.parent_session_path;
+			}
+
+			if (parsed.session_info) {
+				session_name_seen = true;
+				session_name = parsed.session_info.name;
 			}
 
 			// Handle model changes
@@ -111,6 +143,13 @@ export async function sync(
 			// Handle messages
 			if (parsed.message) {
 				const msg = parsed.message;
+				if (
+					!first_message &&
+					msg.type === 'user' &&
+					msg.content_text
+				) {
+					first_message = msg.content_text;
+				}
 
 				// Ensure session exists (for resume where header was already processed)
 				if (msg.session_id && !seen_sessions.has(msg.session_id)) {
@@ -158,9 +197,23 @@ export async function sync(
 			result.messages_added += file_messages_added;
 		}
 
+		if (session_id) {
+			db.update_session_source({
+				id: session_id,
+				path: file_path,
+				mtime_ms: last_modified,
+				size_bytes: file_stats.size,
+				last_seen_at: seen_at,
+				name: session_name,
+				name_seen: session_name_seen,
+				parent_session_path,
+				first_message,
+			});
+		}
 		db.set_sync_state(file_path, last_modified, last_byte_offset);
 	}
 
+	db.mark_unseen_sources_missing(seen_at);
 	db.commit();
 	db.enable_foreign_keys();
 
@@ -169,6 +222,33 @@ export async function sync(
 	}
 
 	return result;
+}
+
+function read_session_header(file_path: string): {
+	id: string;
+	parentSession?: string;
+} | null {
+	let fd: number | undefined;
+	try {
+		fd = openSync(file_path, 'r');
+		const buffer = Buffer.allocUnsafe(64 * 1024);
+		const bytes_read = readSync(fd, buffer, 0, buffer.length, 0);
+		const newline = buffer.subarray(0, bytes_read).indexOf(10);
+		if (newline < 0) return null;
+		const first_line = buffer.subarray(0, newline).toString('utf8');
+		const header = JSON.parse(first_line) as {
+			type?: string;
+			id?: string;
+			parentSession?: string;
+		};
+		return header.type === 'session' && typeof header.id === 'string'
+			? { id: header.id, parentSession: header.parentSession }
+			: null;
+	} catch {
+		return null;
+	} finally {
+		if (fd !== undefined) closeSync(fd);
+	}
 }
 
 function extract_project_path(file_path: string): string {

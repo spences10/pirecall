@@ -12,7 +12,15 @@ CREATE TABLE IF NOT EXISTS sessions (
   project_path TEXT NOT NULL,
   cwd TEXT,
   first_timestamp INTEGER,
-  last_timestamp INTEGER
+  last_timestamp INTEGER,
+  source_path TEXT,
+  source_exists INTEGER NOT NULL DEFAULT 0,
+  source_mtime_ms REAL,
+  source_size_bytes INTEGER,
+  last_seen_at INTEGER,
+  name TEXT,
+  parent_session_path TEXT,
+  first_message TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -146,6 +154,7 @@ export class Database {
 	private db_path: string;
 	private stmt_upsert_session: StatementSync;
 	private stmt_insert_message: StatementSync;
+	private stmt_update_session_timestamp: StatementSync;
 	private stmt_insert_tool_call: StatementSync;
 	private stmt_insert_tool_result: StatementSync;
 	private stmt_insert_model_change: StatementSync;
@@ -157,7 +166,9 @@ export class Database {
 		this.db = new DatabaseSync(db_path, {
 			enableForeignKeyConstraints: true,
 		});
+		this.db.exec('PRAGMA busy_timeout = 5000');
 		this.db.exec(SCHEMA);
+		this.migrate_sessions_schema();
 
 		this.stmt_upsert_session = this.db.prepare(`
 			INSERT INTO sessions (id, project_path, cwd, first_timestamp, last_timestamp)
@@ -173,6 +184,11 @@ export class Database {
 				input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
 				cost_total
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`);
+
+		this.stmt_update_session_timestamp = this.db.prepare(`
+			UPDATE sessions SET last_timestamp = MAX(last_timestamp, ?)
+			WHERE id = ?
 		`);
 
 		this.stmt_insert_tool_call = this.db.prepare(`
@@ -201,6 +217,38 @@ export class Database {
 				last_modified = excluded.last_modified,
 				last_byte_offset = excluded.last_byte_offset
 		`);
+	}
+
+	private migrate_sessions_schema() {
+		const columns = new Set(
+			(
+				this.db
+					.prepare('PRAGMA table_info(sessions)')
+					.all() as Array<{
+					name: string;
+				}>
+			).map((column) => column.name),
+		);
+		const additions: Record<string, string> = {
+			source_path: 'TEXT',
+			source_exists: 'INTEGER NOT NULL DEFAULT 0',
+			source_mtime_ms: 'REAL',
+			source_size_bytes: 'INTEGER',
+			last_seen_at: 'INTEGER',
+			name: 'TEXT',
+			parent_session_path: 'TEXT',
+			first_message: 'TEXT',
+		};
+		for (const [name, definition] of Object.entries(additions)) {
+			if (!columns.has(name)) {
+				this.db.exec(
+					`ALTER TABLE sessions ADD COLUMN ${name} ${definition}`,
+				);
+			}
+		}
+		this.db.exec(
+			'CREATE INDEX IF NOT EXISTS idx_sessions_resumable ON sessions(source_exists, last_timestamp DESC)',
+		);
 	}
 
 	begin() {
@@ -232,6 +280,51 @@ export class Database {
 			session.timestamp,
 			session.timestamp,
 		);
+	}
+
+	update_session_source(session: {
+		id: string;
+		path: string;
+		mtime_ms: number;
+		size_bytes: number;
+		last_seen_at: number;
+		name?: string;
+		name_seen?: boolean;
+		parent_session_path?: string;
+		first_message?: string;
+	}) {
+		this.db
+			.prepare(`
+				UPDATE sessions SET
+					source_path = ?, source_exists = 1,
+					source_mtime_ms = ?, source_size_bytes = ?,
+					last_seen_at = ?,
+					name = CASE WHEN ? THEN ? ELSE name END,
+					parent_session_path = COALESCE(?, parent_session_path),
+					first_message = COALESCE(first_message, ?)
+				WHERE id = ?
+			`)
+			.run(
+				session.path,
+				session.mtime_ms,
+				session.size_bytes,
+				session.last_seen_at,
+				(session.name_seen ?? session.name !== undefined) ? 1 : 0,
+				session.name ?? null,
+				session.parent_session_path ?? null,
+				session.first_message ?? null,
+				session.id,
+			);
+	}
+
+	mark_unseen_sources_missing(seen_at: number) {
+		this.db
+			.prepare(`
+				UPDATE sessions SET source_exists = 0
+				WHERE source_exists = 1
+				  AND (last_seen_at IS NULL OR last_seen_at < ?)
+			`)
+			.run(seen_at);
 	}
 
 	insert_message(msg: {
@@ -267,6 +360,10 @@ export class Database {
 			msg.cache_read_tokens ?? 0,
 			msg.cache_write_tokens ?? 0,
 			msg.cost_total ?? 0,
+		);
+		this.stmt_update_session_timestamp.run(
+			msg.timestamp,
+			msg.session_id,
 		);
 	}
 
@@ -673,6 +770,60 @@ export class Database {
 			total_cost: number;
 			duration_mins: number;
 		}>;
+	}
+
+	list_resumable_sessions(
+		options: {
+			cwd?: string;
+			query?: string;
+			limit?: number;
+			offset?: number;
+		} = {},
+	) {
+		const conditions = ['s.source_exists = 1'];
+		const params: (string | number)[] = [];
+		if (options.cwd) {
+			conditions.push('s.cwd = ?');
+			params.push(options.cwd);
+		}
+		if (options.query) {
+			conditions.push(`(
+				s.name LIKE ? OR s.cwd LIKE ? OR s.first_message LIKE ? OR
+				EXISTS (
+					SELECT 1 FROM messages m
+					WHERE m.session_id = s.id
+					  AND m.type IN ('user', 'assistant')
+					  AND m.content_text LIKE ?
+				)
+			)`);
+			const pattern = `%${options.query}%`;
+			params.push(pattern, pattern, pattern, pattern);
+		}
+		params.push(options.limit ?? 100, options.offset ?? 0);
+		return this.db
+			.prepare(`
+				SELECT s.id, s.source_path AS path, s.cwd, s.name,
+					s.parent_session_path, s.first_timestamp,
+					COALESCE(
+						s.source_mtime_ms,
+						(SELECT MAX(m.timestamp) FROM messages m WHERE m.session_id = s.id),
+						s.last_timestamp
+					) AS modified_timestamp,
+					COALESCE(
+						s.first_message,
+						(SELECT m.content_text FROM messages m
+						 WHERE m.session_id = s.id AND m.type = 'user'
+						   AND m.content_text IS NOT NULL
+						 ORDER BY m.timestamp ASC LIMIT 1)
+					) AS first_message,
+					s.source_mtime_ms, s.source_size_bytes, s.last_seen_at,
+					(SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) AS message_count
+				FROM sessions s
+				WHERE ${conditions.join(' AND ')}
+				ORDER BY modified_timestamp DESC, s.source_path ASC
+				LIMIT ? OFFSET ?
+			`)
+			.all(...params);
 	}
 
 	get_tool_stats(
