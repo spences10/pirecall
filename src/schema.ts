@@ -5,11 +5,18 @@ const SCHEMA = readFileSync(
 	new URL('./schema.sql', import.meta.url),
 	'utf8',
 );
-const LATEST_SCHEMA_VERSION = 2;
+const LATEST_SCHEMA_VERSION = 3;
 const MIGRATIONS: Record<number, string> = {
 	2: readFileSync(
 		new URL(
 			'./migrations/002_resumable_sessions.sql',
+			import.meta.url,
+		),
+		'utf8',
+	),
+	3: readFileSync(
+		new URL(
+			'./migrations/003_session_metadata_index.sql',
 			import.meta.url,
 		),
 		'utf8',

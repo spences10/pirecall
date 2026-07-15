@@ -1,0 +1,2 @@
+ALTER TABLE sync_state
+ADD COLUMN metadata_indexed INTEGER NOT NULL DEFAULT 0;

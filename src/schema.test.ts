@@ -24,13 +24,19 @@ describe('pirecall schema', () => {
 	test('creates a fresh database and applies migrations', () => {
 		const db = new DatabaseSync(':memory:');
 		apply_schema(db);
-		expect(user_version(db)).toBe(2);
+		expect(user_version(db)).toBe(3);
 		const columns = (
 			db.prepare('PRAGMA table_info(sessions)').all() as Array<{
 				name: string;
 			}>
 		).map((column) => column.name);
 		expect(columns).toContain('source_path');
+		const sync_columns = (
+			db.prepare('PRAGMA table_info(sync_state)').all() as Array<{
+				name: string;
+			}>
+		).map((column) => column.name);
+		expect(sync_columns).toContain('metadata_indexed');
 		db.close();
 	});
 
@@ -41,7 +47,7 @@ describe('pirecall schema', () => {
 			'INSERT INTO sessions (id, project_path) VALUES (?, ?)',
 		).run('legacy', '/tmp/legacy');
 		apply_schema(db);
-		expect(user_version(db)).toBe(2);
+		expect(user_version(db)).toBe(3);
 		expect(db.prepare('SELECT id FROM sessions').get()).toEqual({
 			id: 'legacy',
 		});
@@ -56,7 +62,7 @@ describe('pirecall schema', () => {
 			'INSERT INTO sessions (id, project_path, source_path) VALUES (?, ?, ?)',
 		).run('resumable', '/tmp/project', '/tmp/session.jsonl');
 		apply_schema(db);
-		expect(user_version(db)).toBe(2);
+		expect(user_version(db)).toBe(3);
 		expect(
 			db.prepare('SELECT source_path FROM sessions').get(),
 		).toEqual({ source_path: '/tmp/session.jsonl' });
@@ -65,7 +71,7 @@ describe('pirecall schema', () => {
 
 	test('rejects schemas newer than this package', () => {
 		const db = new DatabaseSync(':memory:');
-		db.exec('PRAGMA user_version = 3');
+		db.exec('PRAGMA user_version = 4');
 		expect(() => apply_schema(db)).toThrow('newer than supported');
 		db.close();
 	});

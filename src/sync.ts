@@ -1,11 +1,13 @@
 import {
 	closeSync,
+	createReadStream,
 	existsSync,
 	openSync,
 	readSync,
 	statSync,
 } from 'node:fs';
 import { join, relative } from 'node:path';
+import { createInterface } from 'node:readline';
 import { glob } from 'tinyglobby';
 import { Database } from './db.ts';
 import { parse_file } from './parser.ts';
@@ -30,6 +32,7 @@ export interface SyncResult {
 export async function sync(
 	db: Database,
 	verbose = false,
+	sessions_dir = SESSIONS_DIR,
 ): Promise<SyncResult> {
 	const result: SyncResult = {
 		files_scanned: 0,
@@ -41,13 +44,13 @@ export async function sync(
 		model_changes_added: 0,
 	};
 
-	if (!existsSync(SESSIONS_DIR)) {
-		console.log(`Sessions directory not found: ${SESSIONS_DIR}`);
+	if (!existsSync(sessions_dir)) {
+		console.log(`Sessions directory not found: ${sessions_dir}`);
 		return result;
 	}
 
 	const files = await glob('**/*.jsonl', {
-		cwd: SESSIONS_DIR,
+		cwd: sessions_dir,
 		absolute: true,
 	});
 
@@ -72,6 +75,13 @@ export async function sync(
 		const last_modified = file_stats.mtimeMs;
 
 		const sync_state = db.get_sync_state(file_path);
+		const backfilled_metadata =
+			sync_state && !sync_state.metadata_indexed
+				? await read_session_metadata(file_path)
+				: null;
+		const metadata_indexed = Boolean(
+			sync_state?.metadata_indexed || backfilled_metadata,
+		);
 
 		if (sync_state && sync_state.last_modified >= last_modified) {
 			const header = read_session_header(file_path);
@@ -82,14 +92,28 @@ export async function sync(
 					mtime_ms: last_modified,
 					size_bytes: file_stats.size,
 					last_seen_at: seen_at,
-					parent_session_path: header.parentSession,
+					name: backfilled_metadata?.name,
+					name_seen: backfilled_metadata?.name_seen,
+					parent_session_path:
+						backfilled_metadata?.parent_session_path ??
+						header.parentSession,
+					first_message: backfilled_metadata?.first_message,
 				});
 			}
+			db.set_sync_state(
+				file_path,
+				last_modified,
+				sync_state.last_byte_offset,
+				metadata_indexed,
+			);
 			continue;
 		}
 
 		const start_offset = sync_state?.last_byte_offset ?? 0;
-		const project_path = extract_project_path(file_path);
+		const project_path = extract_project_path(
+			file_path,
+			sessions_dir,
+		);
 
 		if (verbose) {
 			console.log(`Processing: ${file_path}`);
@@ -99,10 +123,12 @@ export async function sync(
 		let file_messages_added = 0;
 		const header = read_session_header(file_path);
 		let session_id = header?.id ?? '';
-		let session_name: string | undefined;
-		let session_name_seen = false;
-		let parent_session_path = header?.parentSession;
-		let first_message: string | undefined;
+		let session_name = backfilled_metadata?.name;
+		let session_name_seen = backfilled_metadata?.name_seen ?? false;
+		let parent_session_path =
+			backfilled_metadata?.parent_session_path ??
+			header?.parentSession;
+		let first_message = backfilled_metadata?.first_message;
 
 		for (const { result: parsed, byte_offset } of parse_file(
 			file_path,
@@ -210,7 +236,12 @@ export async function sync(
 				first_message,
 			});
 		}
-		db.set_sync_state(file_path, last_modified, last_byte_offset);
+		db.set_sync_state(
+			file_path,
+			last_modified,
+			last_byte_offset,
+			metadata_indexed || start_offset === 0,
+		);
 	}
 
 	db.mark_unseen_sources_missing(seen_at);
@@ -222,6 +253,82 @@ export async function sync(
 	}
 
 	return result;
+}
+
+interface SessionMetadata {
+	id: string;
+	name?: string;
+	name_seen: boolean;
+	parent_session_path?: string;
+	first_message?: string;
+}
+
+async function read_session_metadata(
+	file_path: string,
+): Promise<SessionMetadata | null> {
+	let session_id = '';
+	let name: string | undefined;
+	let name_seen = false;
+	let parent_session_path: string | undefined;
+	let first_message: string | undefined;
+	const lines = createInterface({
+		input: createReadStream(file_path, { encoding: 'utf8' }),
+		crlfDelay: Infinity,
+	});
+	try {
+		for await (const line of lines) {
+			let entry: {
+				type?: string;
+				id?: string;
+				parentSession?: string;
+				name?: string;
+				message?: {
+					role?: string;
+					content?: Array<{ type?: string; text?: string }>;
+				};
+			};
+			try {
+				entry = JSON.parse(line) as typeof entry;
+			} catch {
+				continue;
+			}
+			if (entry.type === 'session' && typeof entry.id === 'string') {
+				session_id = entry.id;
+				parent_session_path = entry.parentSession;
+				continue;
+			}
+			if (entry.type === 'session_info') {
+				name_seen = true;
+				name = entry.name?.trim() || undefined;
+				continue;
+			}
+			if (
+				!first_message &&
+				entry.type === 'message' &&
+				entry.message?.role === 'user'
+			) {
+				const text = entry.message.content
+					?.filter(
+						(block) =>
+							block.type === 'text' && typeof block.text === 'string',
+					)
+					.map((block) => block.text)
+					.join('\n');
+				first_message = text || undefined;
+			}
+		}
+	} catch {
+		return null;
+	}
+	return session_id
+		? {
+				id: session_id,
+				name,
+				name_seen,
+				parent_session_path,
+				first_message,
+			}
+		: null;
 }
 
 function read_session_header(file_path: string): {
@@ -251,8 +358,11 @@ function read_session_header(file_path: string): {
 	}
 }
 
-function extract_project_path(file_path: string): string {
-	const rel = relative(SESSIONS_DIR, file_path);
+function extract_project_path(
+	file_path: string,
+	sessions_dir = SESSIONS_DIR,
+): string {
+	const rel = relative(sessions_dir, file_path);
 	const project_dir = rel.split('/')[0];
 
 	// Pi encodes paths as --home-scott-repos-foo--

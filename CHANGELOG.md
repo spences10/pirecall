@@ -1,5 +1,12 @@
 # pirecall
 
+## 0.1.3
+
+### Patch Changes
+
+- Backfill names and metadata from unchanged session files once while
+  preserving fast incremental synchronization afterward.
+
 ## 0.1.2
 
 ### Patch Changes

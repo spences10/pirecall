@@ -42,6 +42,12 @@ export interface CompactResult {
 	bytes_after: number;
 }
 
+interface SyncState {
+	last_modified: number;
+	last_byte_offset: number;
+	metadata_indexed: number;
+}
+
 export class Database {
 	private db: DatabaseSync;
 	private db_path: string;
@@ -99,15 +105,18 @@ export class Database {
 		`);
 
 		this.stmt_get_sync_state = this.db.prepare(
-			'SELECT last_modified, last_byte_offset FROM sync_state WHERE file_path = ?',
+			'SELECT last_modified, last_byte_offset, metadata_indexed FROM sync_state WHERE file_path = ?',
 		);
 
 		this.stmt_set_sync_state = this.db.prepare(`
-			INSERT INTO sync_state (file_path, last_modified, last_byte_offset)
-			VALUES (?, ?, ?)
+			INSERT INTO sync_state (
+				file_path, last_modified, last_byte_offset, metadata_indexed
+			)
+			VALUES (?, ?, ?, ?)
 			ON CONFLICT(file_path) DO UPDATE SET
 				last_modified = excluded.last_modified,
-				last_byte_offset = excluded.last_byte_offset
+				last_byte_offset = excluded.last_byte_offset,
+				metadata_indexed = excluded.metadata_indexed
 		`);
 	}
 
@@ -281,11 +290,9 @@ export class Database {
 		);
 	}
 
-	get_sync_state(
-		file_path: string,
-	): { last_modified: number; last_byte_offset: number } | undefined {
+	get_sync_state(file_path: string): SyncState | undefined {
 		return this.stmt_get_sync_state.get(file_path) as
-			| { last_modified: number; last_byte_offset: number }
+			| SyncState
 			| undefined;
 	}
 
@@ -293,11 +300,13 @@ export class Database {
 		file_path: string,
 		last_modified: number,
 		last_byte_offset: number,
+		metadata_indexed = true,
 	) {
 		this.stmt_set_sync_state.run(
 			file_path,
 			last_modified,
 			last_byte_offset,
+			metadata_indexed ? 1 : 0,
 		);
 	}
 

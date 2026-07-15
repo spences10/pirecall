@@ -52,8 +52,9 @@ const result = await list_resumable_sessions({
 Results contain the absolute JSONL `path`; integrations should verify
 it still exists immediately before asking Pi to switch sessions.
 Existing databases are migrated additively when opened. Run
-`pirecall sync --json` once after upgrading to populate source
-metadata.
+`pirecall sync --json` once after upgrading to stream and backfill
+session names and source metadata. The backfill is marked complete per
+file, so later syncs remain incremental.
 
 ## How It Works
 
