@@ -58,7 +58,7 @@
 		"@types/node": "^25.9.0",
 		"typescript": "^7.0.0",
 		"vite-plus": "^0.3.0",
-		"vitest": "^4.1.6"
+		"vitest": "^5.0.0"
 	},
 	"engines": {
 		"node": ">=22.0.0"
