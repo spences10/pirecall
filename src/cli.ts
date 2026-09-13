@@ -14,6 +14,18 @@ function iso(ts: number): string {
 	return new Date(ts).toISOString();
 }
 
+const message_type_arg = {
+	type: 'enum' as const,
+	options: [
+		'user' as const,
+		'assistant' as const,
+		'toolResult' as const,
+		'all' as const,
+	],
+	description:
+		'Match type: user, assistant, toolResult, all (default: user and assistant)',
+};
+
 const shared_args = {
 	db: {
 		type: 'string' as const,
@@ -319,10 +331,11 @@ export const tools = defineCommand({
 export const search = defineCommand({
 	meta: {
 		name: 'search',
-		description: 'Full-text search across messages',
+		description: 'Full-text search across conversation messages',
 	},
 	args: {
 		...shared_args,
+		type: message_type_arg,
 		_: {
 			type: 'positional' as const,
 			description:
@@ -404,6 +417,7 @@ export const search = defineCommand({
 				project: args.project,
 				session: args.session as string | undefined,
 				after: after_ms,
+				type: args.type,
 				sort: sort_val,
 			});
 
@@ -424,6 +438,7 @@ export const search = defineCommand({
 				const json_results = results.map((r) => {
 					const base = {
 						id: r.id,
+						type: r.type,
 						session_id: r.session_id,
 						project_path: r.project_path,
 						content_text: r.content_text,
@@ -632,6 +647,7 @@ export const recall = defineCommand({
 	},
 	args: {
 		...shared_args,
+		type: message_type_arg,
 		_: {
 			type: 'positional' as const,
 			description: 'Search term',
@@ -677,6 +693,7 @@ export const recall = defineCommand({
 			const results = db.search(term, {
 				limit,
 				project: args.project,
+				type: args.type,
 			});
 
 			const matches = results.map((r) => {
@@ -693,6 +710,7 @@ export const recall = defineCommand({
 					relevance: r.relevance,
 					match: {
 						id: r.id,
+						type: r.type,
 						content_text: r.content_text,
 						timestamp: r.timestamp,
 					},

@@ -106,6 +106,27 @@ All commands support `--json` for programmatic output and
 `-d, --db <path>` to use a custom database path (default:
 `~/.pi/pirecall.db`).
 
+### Search and recall
+
+By default, `search` and `recall` match only user and assistant
+messages. Tool results remain indexed and explicitly searchable:
+
+```bash
+npx pirecall search "build failed" --type=toolResult --json
+npx pirecall recall "authentication" --type=all --json
+```
+
+Both commands accept `--type` with `user`, `assistant`, `toolResult`,
+or `all`. Choosing `all` restores the previous unfiltered search
+behaviour. Invalid values are rejected.
+
+Search JSON includes `type` on each result; recall includes it in
+`match.type`. The filter applies to matches, not surrounding context:
+`--context N` may still include tool evidence, bounded to N messages
+before and after each match. Use `--context 0` to omit it.
+
+No database migration, re-sync, or FTS rebuild is required.
+
 ## Schema migrations
 
 `src/schema.sql` creates the base database schema. `src/schema.ts`

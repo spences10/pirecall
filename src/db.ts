@@ -367,12 +367,14 @@ export class Database {
 			project?: string;
 			session?: string;
 			after?: number;
+			type?: 'user' | 'assistant' | 'toolResult' | 'all';
 			sort?: 'relevance' | 'time' | 'time-asc';
 		} = {},
 	): Array<{
 		id: string;
 		session_id: string;
 		project_path: string;
+		type: string;
 		content_text: string;
 		timestamp: number;
 		snippet: string;
@@ -385,6 +387,7 @@ export class Database {
 				m.id,
 				m.session_id,
 				s.project_path,
+				m.type,
 				m.content_text,
 				m.timestamp,
 				COALESCE(
@@ -398,6 +401,13 @@ export class Database {
 			WHERE messages_fts MATCH ?
 		`;
 		const params: (string | number)[] = [escape_fts5_query(term)];
+
+		if (options.type === undefined) {
+			query += ` AND m.type IN ('user', 'assistant')`;
+		} else if (options.type !== 'all') {
+			query += ` AND m.type = ?`;
+			params.push(options.type);
+		}
 
 		if (options.project) {
 			query += ` AND s.project_path LIKE ?`;
@@ -429,6 +439,7 @@ export class Database {
 			id: string;
 			session_id: string;
 			project_path: string;
+			type: string;
 			content_text: string;
 			timestamp: number;
 			snippet: string;
